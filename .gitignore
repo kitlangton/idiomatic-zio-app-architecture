@@ -1,0 +1,7 @@
+
+.bsp
+.idea
+project/project/target/config-classes
+project/target
+target
+src/main/resources/log.txt
