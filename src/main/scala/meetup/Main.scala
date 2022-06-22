@@ -3,32 +3,45 @@ package meetup
 import zio._
 import java.nio.file.Path
 
-// - MeetupServer
-//   - Users
-//     - Database
-//     - Logger
-//     - Analytics
-//   - Events
-//     - Database
-//     - Logger
-//     - Analytics
 object Main extends ZIOAppDefault {
 
-  val program = {
+  override val run =
+    ZIO
+      .serviceWithZIO[MeetupServer](_.start)
+      .provide(
+        MeetupServer.layer,
+        UsersLive.layer,
+        RsvpsLive.layer,
+        EventsLive.layer,
+        QuillContext.dataSourceLayer,
+        AnalyticsLive.layer,
+        NotificationsLive.layer,
+        EmailServiceLive.layer,
+        fileLogger
+      )
+
+  private lazy val fileLogger =
+    FileLogger.layer(Path.of("/Users/kit/code/zlayer-example/src/main/resources/log.txt"))
+
+  private val manualProgram = {
     val config  = FileLoggerConfig(Path.of("/Users/kit/code/zlayer-example/src/main/resources/log.txt"))
     val managed = FileLogger.make(config) zip QuillContext.dataSourceManaged
     for {
       _ <- managed.use { case (logger, dataSource) =>
              AnalyticsLive.managed(logger).use { analytics =>
-               val users  = UsersLive(dataSource, analytics, logger)
-               val events = EventsLive(dataSource, analytics, logger)
-               val server = MeetupServer(users, events, logger)
-               server.start
+               UsersLive.managed(dataSource, analytics, logger).use { users =>
+                 EventsLive.managed(dataSource, analytics, logger).use { events =>
+                   val emailService = EmailServiceLive(logger)
+                   NotificationsLive.managed(events, users, analytics, emailService).use { notifications =>
+                     RsvpsLive.managed(analytics, notifications, dataSource, logger).use { rsvps =>
+                       val server = MeetupServer(users, events, rsvps, logger)
+                       server.start
+                     }
+                   }
+                 }
+               }
              }
            }
     } yield ()
   }
-
-  val run =
-    program
 }

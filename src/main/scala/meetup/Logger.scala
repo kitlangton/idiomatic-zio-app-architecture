@@ -36,4 +36,9 @@ object FileLogger {
              }
              .forkManaged
     } yield FileLogger(queue)
+
+  def layer(path: Path): ZLayer[Any, Throwable, FileLogger] =
+    ZLayer.fromManaged {
+      make(FileLoggerConfig(path))
+    }
 }

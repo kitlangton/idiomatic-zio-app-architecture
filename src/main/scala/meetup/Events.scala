@@ -50,6 +50,9 @@ final case class EventsLive(
 }
 
 object EventsLive {
+  val layer: ZLayer[DataSource with Analytics with Logger, Nothing, Events] =
+    ZLayer.fromFunction(EventsLive.apply _)
+
   def managed(dataSource: DataSource, analytics: Analytics, logger: Logger): ZManaged[Any, Nothing, Events] =
     Utils.makeManaged("EventsLive", EventsLive(dataSource, analytics, logger))
 }

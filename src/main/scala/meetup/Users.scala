@@ -1,6 +1,6 @@
 package meetup
 
-import zio.{Random, Ref, Task, UIO, ZEnvironment, ZIO}
+import zio.{Random, Ref, Task, UIO, ZEnvironment, ZIO, ZLayer}
 
 import java.util.UUID
 import javax.sql.DataSource
@@ -62,6 +62,10 @@ object FakeUsersService {
 }
 
 object UsersLive {
+
+  val layer: ZLayer[DataSource with Analytics with Logger, Nothing, UsersLive] =
+    ZLayer.fromFunction(UsersLive.apply _)
+
   def managed(dataSource: DataSource, analytics: Analytics, logger: Logger): ZManaged[Any, Nothing, Users] =
-    Utils.makeManaged("EventsLive", UsersLive(dataSource, analytics, logger))
+    Utils.makeManaged("UsersLive", UsersLive(dataSource, analytics, logger))
 }

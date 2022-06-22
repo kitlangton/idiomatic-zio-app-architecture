@@ -13,6 +13,9 @@ final case class AnalyticsLive(logger: Logger) extends Analytics {
 }
 
 object AnalyticsLive {
+  val layer: ZLayer[Logger, Nothing, Analytics] =
+    ZLayer.fromFunction(AnalyticsLive.apply _)
+
   def managed(logger: Logger): ZManaged[Any, Nothing, AnalyticsLive] =
     Utils.makeManaged("AnalyticsLive", AnalyticsLive(logger))
 }
